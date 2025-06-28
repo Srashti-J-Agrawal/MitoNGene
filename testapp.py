@@ -75,7 +75,7 @@ total_publications = df["PMID"].nunique() if "PMID" in df.columns else "-"
 # Load logo image safely
 if os.path.exists("MainLogo.PNG"):
     logo = Image.open("MainLogo.PNG")
-    st.image(logo, width=150)
+    
 else:
     st.warning("Logo file 'MainLogo.PNG' not found. Please upload it to the app directory.")
 
@@ -84,18 +84,36 @@ st.sidebar.title("🔍 Navigate")
 page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact Us", "Home", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps"])
 
 
-st.markdown("""
-<a name='contact'></a>
-## 📬 Contact Us
-For questions or collaborations, please contact:
 
-📧 srashti.agrawal@igib.in  
-👨‍🔬 Dr. Vivek T. Natarajan, Scientist, CSIR-IGIB  
-👨‍🔬 Dr. Sridhar Sivasubbu, Scientist, CSIR-IGIB  
-🏢 CSIR-Institute of Genomics and Integrative Biology, Mathura Road, New Delhi
-""")
 
 if page == "Home":
+    st.markdown(f"""
+    <style>
+        .home-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom right, #00a8e8, #0077b6);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+        .home-header img {
+            width: 90px;
+            margin-right: 1.5rem;
+        }
+        .home-header h1 {
+            font-size: 32px;
+            margin: 0;
+            line-height: 1.3;
+        }
+    </style>
+    <div class='home-header'>
+        <img src='{logo_url}' alt='Logo'>
+        <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
+    </div>
+""", unsafe_allow_html=True)
     st.markdown("""
         <style>
             .home-header {
