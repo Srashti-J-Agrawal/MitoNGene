@@ -50,7 +50,7 @@ st.markdown("""
     </style>
     <div class='top-nav'>
         <div class='logo-header'>
-            <img src='MainLogo.PNG' width='50' height='50'>
+            <a href='/?page=Home'><img src='MainLogo.PNG' width='50' height='50' alt='MitoNGene Logo'></a>
             <span>MitoNGene</span>
         </div>
         <div>
@@ -87,94 +87,55 @@ page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact
 if page == "Home":
     if os.path.exists(logo_url):
         st.markdown(f"""
-    <style>
-        .home-header {{
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(to bottom right, #00a8e8, #0077b6);
-            color: white;
-            padding: 2rem;
-            border-radius: 10px;
-            margin-bottom: 2rem;
-        }}
-        .home-header img {{
-            width: 90px;
-            margin-right: 1.5rem;
-        }}
-        .home-header h1 {{
-            font-size: 32px;
-            margin: 0;
-            line-height: 1.3;
-        }}
-    </style>
-    <div class='home-header'>
-        <img src='{logo_url}' alt='Logo'>
-        <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
-    </div>
-    """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-    <style>
-        .home-header {{
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(to bottom right, #00a8e8, #0077b6);
-            color: white;
-            padding: 2rem;
-            border-radius: 10px;
-            margin-bottom: 2rem;
-        }}
-        .home-header h1 {{
-            font-size: 32px;
-            margin: 0;
-            line-height: 1.3;
-        }}
-    </style>
-    <div class='home-header'>
-        <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown("""
         <style>
-            .home-header {
+            .home-header {{
                 display: flex;
-                justify-content: center;
                 align-items: center;
-                flex-direction: column;
+                justify-content: center;
                 background: linear-gradient(to bottom right, #00a8e8, #0077b6);
                 color: white;
-                padding: 3rem 1rem;
+                padding: 2rem;
                 border-radius: 10px;
                 margin-bottom: 2rem;
-            }
-            .home-header h1 {
-                font-size: 38px;
+            }}
+            .home-header img {{
+                width: 90px;
+                margin-right: 1.5rem;
+            }}
+            .home-header h1 {{
+                font-size: 32px;
                 margin: 0;
-                line-height: 1.4;
-                text-align: center;
-            }
-            .search-container {
+                line-height: 1.3;
+            }}
+        </style>
+        <div class='home-header'>
+            <img src='{logo_url}' alt='Logo'>
+            <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <style>
+            .home-header {{
                 display: flex;
+                align-items: center;
                 justify-content: center;
-                margin-top: 2rem;
-            }
-            .metric-title {
-                font-size: 20px;
-                font-weight: bold;
-                color: #0077b6;
-                text-align: center;
-            }
+                background: linear-gradient(to bottom right, #00a8e8, #0077b6);
+                color: white;
+                padding: 2rem;
+                border-radius: 10px;
+                margin-bottom: 2rem;
+            }}
+            .home-header h1 {{
+                font-size: 32px;
+                margin: 0;
+                line-height: 1.3;
+            }}
         </style>
         <div class='home-header'>
             <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
-            <div class='search-container'>
-                <input type='text' placeholder='Phenotype/Gene/Variant/Disease' style='width: 400px; height: 40px; font-size: 16px; padding-left: 10px;'>
-                <button style='height: 44px; background-color: #005f73; color: white; border: none; padding: 0 15px; font-size: 16px;'>🔍</button>
-            </div>
         </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
