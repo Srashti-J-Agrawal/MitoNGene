@@ -1,4 +1,4 @@
-# app.py
+# testapp.py
 import streamlit as st
 import pandas as pd
 import urllib.parse
@@ -19,9 +19,8 @@ with st.expander("⚙️ Admin: Upload Updated Dataset"):
     uploaded_file = st.file_uploader("Upload a new Excel file to update the database", type=["xlsx"])
     if uploaded_file:
         st.success("New file uploaded successfully.")
-    df = load_data(uploaded_file)
-else:
-    df = load_data()
+
+df = load_data(uploaded_file if 'uploaded_file' in locals() else None)
 
 # Sidebar Filters
 with st.sidebar:
