@@ -27,8 +27,8 @@ total_diseases = df["Disease"].nunique()
 total_publications = df["PMID"].nunique() if "PMID" in df.columns else "-"
 
 # Load logo image safely
-if os.path.exists("mito_white.PNG"):
-    logo = Image.open("mito_white.PNG")
+if os.path.exists("MainLogo.PNG"):
+    logo = Image.open("MainLogo.PNG")
     st.image(logo, width=150)
 else:
     st.warning("Logo file 'mito_white.PNG' not found. Please upload it to the app directory.")
