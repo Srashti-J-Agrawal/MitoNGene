@@ -17,6 +17,52 @@ def load_data(uploaded_file=None):
 
 st.set_page_config(page_title="Genetic Variant & Phenotype DB", layout="wide")
 
+# Top navigation bar
+st.markdown("""
+    <style>
+        .top-nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #003349;
+            padding: 0.8rem 2rem;
+            color: white;
+            font-weight: bold;
+        }
+        .top-nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 2rem;
+            font-size: 16px;
+        }
+        .top-nav a:hover {
+            text-decoration: underline;
+        }
+        .logo-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+    </style>
+    <div class='top-nav'>
+        <div class='logo-header'>
+            <img src='MainLogo.PNG' width='50' height='50'>
+            <span>MitoNGene</span>
+        </div>
+        <div>
+            <a href='#about'>About</a>
+            <a href='#vcf-parse'>Vcf Parse</a>
+            <a href='#help'>Help</a>
+            <a href='#contact'>Contact Us</a>
+        </div>
+    </div>
+    <div style='margin-top: 80px'></div>
+""", unsafe_allow_html=True)
+
 # Load main data
 df = load_data()
 
@@ -37,21 +83,81 @@ else:
 st.sidebar.title("🔍 Navigate")
 page = st.sidebar.radio("Go to", ["Home", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps"])
 
+# About Section
+st.markdown("""
+<a name='about'></a>
+## 📘 About
+This database presents curated variants in nuclear-encoded genes associated with mitochondrial diseases. It is designed for researchers, clinicians, and bioinformaticians to explore genotype-phenotype relationships across curated literature and ClinVar sources.
+""")
+
+# VCF Parse Placeholder
+st.markdown("""
+<a name='vcf-parse'></a>
+## 🧬 VCF Parse (Coming Soon)
+Functionality for parsing VCF files and automated annotation will be added soon.
+""")
+
+# Help Section
+st.markdown("""
+<a name='help'></a>
+## ❓ Help
+To browse variants, select a category from the sidebar (e.g., by Gene, Disease, Phenotype). Use the search bar on the homepage to quickly query by gene, SNP ID, or disease name. Use charts to explore top genes and associated diseases.
+""")
+
+# Contact Section
+st.markdown("""
+<a name='contact'></a>
+## 📬 Contact Us
+For questions or collaborations, please contact:
+
+📧 srashti.agrawal@igib.in  
+👨‍🔬 Dr. Vivek T. Natarajan, Scientist, CSIR-IGIB  
+👨‍🔬 Dr. Sridhar Sivasubbu, Scientist, CSIR-IGIB  
+🏢 CSIR-Institute of Genomics and Integrative Biology, Mathura Road, New Delhi
+""")
+
 if page == "Home":
-    st.title("🧬 Nuclear-encoded Mitochondrial Variant Database")
-    query = st.text_input("Search by gene, disease, phenotype, or variant:")
+    st.markdown("""
+        <style>
+            .title {
+                font-size: 38px;
+                color: #ffffff;
+                text-shadow: 1px 1px 2px #000000;
+            }
+            .search-bar input {
+                height: 3em;
+                font-size: 18px;
+            }
+            .metric-box {
+                background-color: #eaf4fc;
+                border-radius: 10px;
+                padding: 15px;
+                text-align: center;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<h1 class='title'>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>", unsafe_allow_html=True)
+
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        query = st.text_input("", placeholder="Phenotype/Gene/Variant/Disease", label_visibility="collapsed")
+    with col2:
+        st.button("🔍", use_container_width=True)
+
     if query:
         query = query.lower()
         filtered_df = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(query).any(), axis=1)]
         st.dataframe(filtered_df, use_container_width=True)
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Variants", total_variants)
-    col2.metric("Total Genes", total_genes)
-    col3.metric("Total Diseases", total_diseases)
-    col4.metric("Total Publications", total_publications)
+    st.markdown("### 🧾 Summary Statistics")
+    metric1, metric2, metric3, metric4 = st.columns(4)
+    metric1.metric("Total number of genes", total_genes)
+    metric2.metric("Total number of diseases", total_diseases)
+    metric3.metric("Total number of variants", total_variants)
+    metric4.metric("Total number of publications", total_publications)
 
-    st.markdown("### Overview Charts")
+    st.markdown("### 📊 Breakdown")
     if "Disease" in df.columns:
         disease_chart = df["Disease"].value_counts().reset_index()
         disease_chart.columns = ["Disease", "Count"]
