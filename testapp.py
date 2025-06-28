@@ -3,6 +3,9 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 from openai import OpenAI
+from PIL import Image
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Load data
 @st.cache_data
@@ -12,103 +15,126 @@ def load_data(uploaded_file=None):
     return pd.read_excel("UniqLiterature2018.xlsx")
 
 st.set_page_config(page_title="Genetic Variant & Phenotype DB", layout="wide")
-st.title("🧬 Genetic Variant & Phenotype Database")
 
-# Admin Upload Panel
-with st.expander("⚙️ Admin: Upload Updated Dataset"):
-    uploaded_file = st.file_uploader("Upload a new Excel file to update the database", type=["xlsx"])
-    if uploaded_file:
-        st.success("New file uploaded successfully.")
+# Load main data
+df = load_data()
 
-df = load_data(uploaded_file if 'uploaded_file' in locals() else None)
+# Calculate metrics
+total_variants = df["Merged"].nunique()
+total_genes = df["refGene"].nunique()
+total_diseases = df["Disease"].nunique()
+total_publications = df["PMID"].nunique() if "PMID" in df.columns else "-"
 
-# Sidebar Filters
-with st.sidebar:
-    st.header("🔍 Filter Options")
-    selected_gene = st.selectbox("Filter by Gene", ["All"] + sorted(df["refGene"].dropna().unique().tolist()))
-    selected_disease = st.selectbox("Filter by Disease", ["All"] + sorted(df["Disease"].dropna().unique().tolist()))
-    selected_chr = st.selectbox("Filter by Chromosome", ["All"] + sorted(df["chr"].dropna().unique().tolist()))
-    selected_func = st.selectbox("Filter by Mutation Type (FunctionalRef)", ["All"] + sorted(df["FunctionalRef"].dropna().unique().tolist()))
+# Load logo image
+logo = Image.open("mito_white.PNG")
 
-# Search box in main view
-query = st.text_input("🔎 Search for keyword in all fields (e.g., SNP ID, phenotype, gene, comment)")
+# Sidebar navigation
+st.sidebar.title("🔍 Navigate")
+page = st.sidebar.radio("Go to", ["Home", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps"])
 
-# Apply filters
-filtered_df = df.copy()
-if selected_gene != "All":
-    filtered_df = filtered_df[filtered_df["refGene"] == selected_gene]
-if selected_disease != "All":
-    filtered_df = filtered_df[filtered_df["Disease"] == selected_disease]
-if selected_chr != "All":
-    filtered_df = filtered_df[filtered_df["chr"] == selected_chr]
-if selected_func != "All":
-    filtered_df = filtered_df[filtered_df["FunctionalRef"] == selected_func]
+# Home Page
+if page == "Home":
+    st.image(logo, width=150)
+    st.markdown("""
+    <h1 style='color:#0288D1; font-size: 38px;'>Nuclear-encoded Mitochondrial Disease <br>Variants Database</h1>
+    """, unsafe_allow_html=True)
 
-if query:
-    query = query.lower()
-    filtered_df = filtered_df[filtered_df.apply(lambda row: row.astype(str).str.lower().str.contains(query).any(), axis=1)]
+    st.markdown("""
+    <div style='margin-top: 30px; font-size: 16px;'>
+    Search genetic variants associated with nuclear-encoded mitochondrial diseases by phenotype, gene, variant, or disease name.
+    </div>
+    """, unsafe_allow_html=True)
 
-st.write(f"### Showing {len(filtered_df)} variant(s)")
+    query = st.text_input("🔍 Search Variant / Gene / Disease / Phenotype", placeholder="Phenotype/Gene/Variant/Disease")
 
-# Function to create external links
-def create_links(row):
-    links = []
-    if pd.notna(row["dbSNP"]):
-        links.append(("dbSNP", f"https://www.ncbi.nlm.nih.gov/snp/{urllib.parse.quote(str(row['dbSNP']))}"))
-    if pd.notna(row["ClinvarID"]):
-        links.append(("ClinVar", f"https://www.ncbi.nlm.nih.gov/clinvar/variation/{urllib.parse.quote(str(row['ClinvarID']).split('.')[0])}"))
-    if pd.notna(row["OMIM"]):
-        omim_id = str(row["OMIM"]).split(".")[0]
-        links.append(("OMIM", f"https://www.omim.org/entry/{urllib.parse.quote(omim_id)}"))
-    return links
+    if query:
+        query = query.lower()
+        filtered_df = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(query).any(), axis=1)]
+        st.write(f"### Showing {len(filtered_df)} matching result(s)")
+        st.dataframe(filtered_df, use_container_width=True)
 
-# AI summary using OpenAI (new API syntax for openai>=1.0.0)
-client = OpenAI(api_key=st.secrets["openai_api_key"])
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("🧬 Total number of variants", f"{total_variants}")
+    col2.metric("🧪 Total number of genes", f"{total_genes}")
+    col3.metric("🦠 Total number of diseases", f"{total_diseases}")
+    col4.metric("📚 Total number of publications", f"{total_publications}")
 
-def ai_summary(comment):
-    if pd.isna(comment) or comment.strip() == "":
-        return "No comment to summarize."
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Summarize this genetic variant comment in one sentence."},
-                {"role": "user", "content": comment}
-            ]
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"[Error summarizing] {str(e)}"
+    st.markdown("### 📊 Dataset Overview")
+    disease_count = df["Disease"].value_counts().reset_index().rename(columns={"index": "Disease", "Disease": "Count"})
+    st.plotly_chart(px.pie(disease_count.head(10), names='Disease', values='Count', title='Top 10 Diseases by Variant Count'), use_container_width=True)
 
-# Generate compact card-style display with clickable buttons
-for i, row in filtered_df.iterrows():
+    gene_count = df["refGene"].value_counts().reset_index().rename(columns={"index": "Gene", "refGene": "Count"})
+    st.plotly_chart(px.bar(gene_count.head(10), x='Gene', y='Count', title='Top 10 Genes by Variant Count'), use_container_width=True)
+
     st.markdown("---")
-    st.markdown(f"### 🧬 {row['refGene']} | {row['Merged']}")
-    st.markdown(f"**Chromosome:** {row['chr']} | **Start:** {row['Start']} | **Ref/Alt:** {row['Ref']}/{row['Alt']}")
-    st.markdown(f"**Disease:** {row['Disease']}")
-    summary = ai_summary(row["Comments"])
-    st.markdown(f"**AI Summary:** _{summary}_")
+    st.markdown("""
+    <small>Built with ❤️ using Streamlit | Data from UniqLiterature2018.xlsx</small>
+    """, unsafe_allow_html=True)
 
-    # Display external links as buttons
-    links = create_links(row)
-    cols = st.columns(len(links) + 1)
-    for idx, (label, url) in enumerate(links):
-        with cols[idx]:
-            st.link_button(label, url)
+elif page == "Browse All Variants":
+    st.title("🧬 Browse All Variants")
+    st.dataframe(df, use_container_width=True)
 
-    # View details button
-    merged_id = urllib.parse.quote(row["Merged"])
-    with cols[-1]:
-        st.link_button("View Details", f"?merged={merged_id}")
+elif page == "By Gene":
+    st.title("🧪 Gene-wise Summary")
+    selected_gene = st.selectbox("Select Gene", sorted(df["refGene"].dropna().unique()))
+    gene_df = df[df["refGene"] == selected_gene]
+    st.write(f"### {len(gene_df)} variant(s) found for {selected_gene}")
+    st.dataframe(gene_df, use_container_width=True)
+    disease_chart = gene_df["Disease"].value_counts().reset_index().rename(columns={"index": "Disease", "Disease": "Count"})
+    st.plotly_chart(px.pie(disease_chart, names='Disease', values='Count', title='Associated Diseases'), use_container_width=True)
 
-# Route to full detail view based on URL query param
-params = st.query_params
-if "merged" in params:
-    target = urllib.parse.unquote(params["merged"])
-    st.markdown("---")
-    st.subheader(f"📋 Full Details for Variant: {target}")
-    full_detail = df[df["Merged"] == target]
-    st.dataframe(full_detail, use_container_width=True)
+elif page == "By Disease":
+    st.title("🦠 Disease-wise Summary")
+    selected_disease = st.selectbox("Select Disease", sorted(df["Disease"].dropna().unique()))
+    dis_df = df[df["Disease"] == selected_disease]
+    st.write(f"### {len(dis_df)} variant(s) found for {selected_disease}")
+    st.dataframe(dis_df, use_container_width=True)
+    gene_chart = dis_df["refGene"].value_counts().reset_index().rename(columns={"index": "Gene", "refGene": "Count"})
+    st.plotly_chart(px.bar(gene_chart, x='Gene', y='Count', title='Associated Genes'), use_container_width=True)
 
-st.markdown("---")
-st.caption("Built with ❤️ using Streamlit | Data from UniqLiterature2018.xlsx")
+elif page == "By Phenotype":
+    st.title("📖 Phenotype-wise Summary")
+    if "Phenotype" in df.columns:
+        selected_pheno = st.selectbox("Select Phenotype", sorted(df["Phenotype"].dropna().unique()))
+        pheno_df = df[df["Phenotype"] == selected_pheno]
+        st.write(f"### {len(pheno_df)} variant(s) associated with {selected_pheno}")
+        st.dataframe(pheno_df, use_container_width=True)
+    else:
+        st.warning("Phenotype data not available in this dataset.")
+
+elif page == "Gene Diagram":
+    st.title("🧬 Gene Diagram Viewer")
+    selected_gene = st.selectbox("Select Gene for Diagram", sorted(df["refGene"].dropna().unique()))
+    gene_data = df[df["refGene"] == selected_gene]
+    if not gene_data.empty:
+        st.write(f"Rendering intron/exon-style layout for {selected_gene}...")
+        st.plotly_chart(px.timeline(
+            gene_data,
+            x_start="Start",
+            x_end="End",
+            y="Merged",
+            color="FunctionalRef",
+            title=f"Genomic Range of Variants in {selected_gene}"
+        ), use_container_width=True)
+    else:
+        st.info("No data found for the selected gene.")
+
+elif page == "Bubble & Heatmaps":
+    st.title("📊 Variant-Level Bubble & Heatmaps")
+    if "refGene" in df.columns and "Disease" in df.columns:
+        grouped = df.groupby(["refGene", "Disease"]).size().reset_index(name="Count")
+        st.plotly_chart(px.scatter(
+            grouped, x="refGene", y="Disease", size="Count", color="Count",
+            title="Variant Counts by Gene and Disease (Bubble Plot)",
+            height=700
+        ), use_container_width=True)
+
+        heatmap_data = grouped.pivot(index="Disease", columns="refGene", values="Count").fillna(0)
+        st.plotly_chart(px.imshow(
+            heatmap_data,
+            labels=dict(x="Gene", y="Disease", color="Variant Count"),
+            title="Heatmap of Variants by Gene and Disease"
+        ), use_container_width=True)
+    else:
+        st.warning("Required fields for visualization not found.")
