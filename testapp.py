@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import urllib.parse
-import openai
+from openai import OpenAI
 
 # Load data
 @st.cache_data
@@ -28,6 +28,7 @@ with st.sidebar:
     selected_gene = st.selectbox("Filter by Gene", ["All"] + sorted(df["refGene"].dropna().unique().tolist()))
     selected_disease = st.selectbox("Filter by Disease", ["All"] + sorted(df["Disease"].dropna().unique().tolist()))
     selected_chr = st.selectbox("Filter by Chromosome", ["All"] + sorted(df["chr"].dropna().unique().tolist()))
+    selected_func = st.selectbox("Filter by Mutation Type (FunctionalRef)", ["All"] + sorted(df["FunctionalRef"].dropna().unique().tolist()))
 
 # Search box in main view
 query = st.text_input("🔎 Search for keyword in all fields (e.g., SNP ID, phenotype, gene, comment)")
@@ -40,6 +41,8 @@ if selected_disease != "All":
     filtered_df = filtered_df[filtered_df["Disease"] == selected_disease]
 if selected_chr != "All":
     filtered_df = filtered_df[filtered_df["chr"] == selected_chr]
+if selected_func != "All":
+    filtered_df = filtered_df[filtered_df["FunctionalRef"] == selected_func]
 
 if query:
     query = query.lower()
@@ -51,17 +54,15 @@ st.write(f"### Showing {len(filtered_df)} variant(s)")
 def create_links(row):
     links = []
     if pd.notna(row["dbSNP"]):
-        links.append(f"[dbSNP](https://www.ncbi.nlm.nih.gov/snp/{urllib.parse.quote(str(row['dbSNP']))})")
+        links.append(("dbSNP", f"https://www.ncbi.nlm.nih.gov/snp/{urllib.parse.quote(str(row['dbSNP']))}"))
     if pd.notna(row["ClinvarID"]):
-        links.append(f"[ClinVar](https://www.ncbi.nlm.nih.gov/clinvar/variation/{urllib.parse.quote(str(row['ClinvarID']).split('.')[0])})")
+        links.append(("ClinVar", f"https://www.ncbi.nlm.nih.gov/clinvar/variation/{urllib.parse.quote(str(row['ClinvarID']).split('.')[0])}"))
     if pd.notna(row["OMIM"]):
         omim_id = str(row["OMIM"]).split(".")[0]
-        links.append(f"[OMIM](https://www.omim.org/entry/{urllib.parse.quote(omim_id)})")
-    return " | ".join(links)
+        links.append(("OMIM", f"https://www.omim.org/entry/{urllib.parse.quote(omim_id)}"))
+    return links
 
 # AI summary using OpenAI (new API syntax for openai>=1.0.0)
-from openai import OpenAI
-
 client = OpenAI(api_key=st.secrets["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"])
 
 def ai_summary(comment):
@@ -79,43 +80,35 @@ def ai_summary(comment):
     except Exception as e:
         return f"[Error summarizing] {str(e)}"
 
-# Generate final view DataFrame
-styled_df = filtered_df[["refGene", "chr", "Start", "Ref", "Alt", "Disease", "dbSNP", "ClinvarID", "OMIM", "Comments"]].copy()
-styled_df["Links"] = filtered_df.apply(create_links, axis=1)
-styled_df["AI Summary"] = filtered_df["Comments"].apply(ai_summary)
+# Generate compact card-style display with clickable buttons
+for i, row in filtered_df.iterrows():
+    st.markdown("---")
+    st.markdown(f"### 🧬 {row['refGene']} | {row['Merged']}")
+    st.markdown(f"**Chromosome:** {row['chr']} | **Start:** {row['Start']} | **Ref/Alt:** {row['Ref']}/{row['Alt']}")
+    st.markdown(f"**Disease:** {row['Disease']}")
+    summary = ai_summary(row["Comments"])
+    st.markdown(f"**AI Summary:** _{summary}_")
 
-# Add simple severity tagging (mockup)
-def tag_severity(disease):
-    if pd.isna(disease):
-        return "🟢 Mild"
-    disease_lower = disease.lower()
-    if any(keyword in disease_lower for keyword in ["lethal", "severe", "neurodegenerative"]):
-        return "🔴 Severe"
-    elif any(keyword in disease_lower for keyword in ["progressive", "chronic"]):
-        return "🟠 Moderate"
-    else:
-        return "🟢 Mild"
+    # Display external links as buttons
+    links = create_links(row)
+    cols = st.columns(len(links) + 1)
+    for idx, (label, url) in enumerate(links):
+        with cols[idx]:
+            st.link_button(label, url)
 
-styled_df["Severity"] = filtered_df["Disease"].apply(tag_severity)
+    # View details button
+    merged_id = urllib.parse.quote(row["Merged"])
+    with cols[-1]:
+        st.link_button("View Details", f"?merged={merged_id}")
 
-# Multi-row selection
-selected_rows = st.multiselect("Select row indices to export:", styled_df.index.tolist())
-if selected_rows:
-    export_df = styled_df.loc[selected_rows]
-    st.download_button(
-        label="📥 Export Selected Rows",
-        data=export_df.to_csv(index=False),
-        file_name="selected_variants.csv",
-        mime="text/csv"
-    )
-
-# Display table
-st.data_editor(
-    styled_df[["refGene", "chr", "Start", "Ref", "Alt", "Disease", "Severity", "Links", "AI Summary"]],
-    use_container_width=True,
-    hide_index=True,
-    num_rows="dynamic"
-)
+# Route to full detail view based on URL query param
+params = st.query_params
+if "merged" in params:
+    target = urllib.parse.unquote(params["merged"])
+    st.markdown("---")
+    st.subheader(f"📋 Full Details for Variant: {target}")
+    full_detail = df[df["Merged"] == target]
+    st.dataframe(full_detail, use_container_width=True)
 
 st.markdown("---")
 st.caption("Built with ❤️ using Streamlit | Data from UniqLiterature2018.xlsx")
