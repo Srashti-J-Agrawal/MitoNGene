@@ -79,7 +79,7 @@ if not os.path.exists(logo_url):
 
 # Sidebar navigation
 st.sidebar.title("🔍 Navigate")
-page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact Us", "Home", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps"])
+page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact Us", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps"]))
 
 
 
