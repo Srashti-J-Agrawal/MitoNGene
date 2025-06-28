@@ -81,30 +81,9 @@ else:
 
 # Sidebar navigation
 st.sidebar.title("🔍 Navigate")
-page = st.sidebar.radio("Go to", ["Home", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps"])
+page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact Us", "Home", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps"])
 
-# About Section
-st.markdown("""
-<a name='about'></a>
-## 📘 About
-This database presents curated variants in nuclear-encoded genes associated with mitochondrial diseases. It is designed for researchers, clinicians, and bioinformaticians to explore genotype-phenotype relationships across curated literature and ClinVar sources.
-""")
 
-# VCF Parse Placeholder
-st.markdown("""
-<a name='vcf-parse'></a>
-## 🧬 VCF Parse (Coming Soon)
-Functionality for parsing VCF files and automated annotation will be added soon.
-""")
-
-# Help Section
-st.markdown("""
-<a name='help'></a>
-## ❓ Help
-To browse variants, select a category from the sidebar (e.g., by Gene, Disease, Phenotype). Use the search bar on the homepage to quickly query by gene, SNP ID, or disease name. Use charts to explore top genes and associated diseases.
-""")
-
-# Contact Section
 st.markdown("""
 <a name='contact'></a>
 ## 📬 Contact Us
@@ -119,38 +98,59 @@ For questions or collaborations, please contact:
 if page == "Home":
     st.markdown("""
         <style>
-            .title {
-                font-size: 38px;
-                color: #ffffff;
-                text-shadow: 1px 1px 2px #000000;
-            }
-            .search-bar input {
-                height: 3em;
-                font-size: 18px;
-            }
-            .metric-box {
-                background-color: #eaf4fc;
+            .home-header {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+                background: linear-gradient(to bottom right, #00a8e8, #0077b6);
+                color: white;
+                padding: 3rem 1rem;
                 border-radius: 10px;
-                padding: 15px;
+                margin-bottom: 2rem;
+            }
+            .home-header h1 {
+                font-size: 38px;
+                margin: 0;
+                line-height: 1.4;
+                text-align: center;
+            }
+            .search-container {
+                display: flex;
+                justify-content: center;
+                margin-top: 2rem;
+            }
+            .metric-title {
+                font-size: 20px;
+                font-weight: bold;
+                color: #0077b6;
                 text-align: center;
             }
         </style>
+        <div class='home-header'>
+            <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
+            <div class='search-container'>
+                <input type='text' placeholder='Phenotype/Gene/Variant/Disease' style='width: 400px; height: 40px; font-size: 16px; padding-left: 10px;'>
+                <button style='height: 44px; background-color: #005f73; color: white; border: none; padding: 0 15px; font-size: 16px;'>🔍</button>
+            </div>
+        </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1 class='title'>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>", unsafe_allow_html=True)
-
-    col1, col2 = st.columns([4, 1])
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
-        query = st.text_input("", placeholder="Phenotype/Gene/Variant/Disease", label_visibility="collapsed")
+        st.markdown("<div class='metric-title'>Total number of genes</div>", unsafe_allow_html=True)
+        st.metric(label="", value=total_genes)
     with col2:
-        st.button("🔍", use_container_width=True)
+        st.markdown("<div class='metric-title'>Total number of diseases</div>", unsafe_allow_html=True)
+        st.metric(label="", value=total_diseases)
+    with col3:
+        st.markdown("<div class='metric-title'>Total number of variants</div>", unsafe_allow_html=True)
+        st.metric(label="", value=total_variants)
+    with col4:
+        st.markdown("<div class='metric-title'>Total number of publications</div>", unsafe_allow_html=True)
+        st.metric(label="", value=total_publications)
 
-    if query:
-        query = query.lower()
-        filtered_df = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(query).any(), axis=1)]
-        st.dataframe(filtered_df, use_container_width=True)
-
-    st.markdown("### 🧾 Summary Statistics")
+    st.markdown("### 📊 Breakdown")
     metric1, metric2, metric3, metric4 = st.columns(4)
     metric1.metric("Total number of genes", total_genes)
     metric2.metric("Total number of diseases", total_diseases)
@@ -209,6 +209,39 @@ elif page == "Gene Diagram":
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("No variant data for selected gene.")
+
+elif page == "About":
+    st.title("📘 About")
+    st.markdown("""
+    This database presents curated variants in nuclear-encoded genes associated with mitochondrial diseases.
+    It is designed for researchers, clinicians, and bioinformaticians to explore genotype-phenotype relationships
+    across curated literature and ClinVar sources.
+    """)
+
+elif page == "VCF Parse":
+    st.title("🧬 VCF Parse (Coming Soon)")
+    st.markdown("""
+    Functionality for parsing VCF files and automated annotation will be added soon.
+    """)
+
+elif page == "Help":
+    st.title("❓ Help")
+    st.markdown("""
+    To browse variants, select a category from the sidebar (e.g., by Gene, Disease, Phenotype).
+    Use the search bar on the homepage to quickly query by gene, SNP ID, or disease name.
+    Use the charts to explore top genes and associated diseases.
+    """)
+
+elif page == "Contact Us":
+    st.title("📬 Contact Us")
+    st.markdown("""
+    For questions or collaborations, please contact:
+
+    📧 srashti.agrawal@igib.in  
+    👨‍🔬 Dr. Vivek T. Natarajan, Scientist, CSIR-IGIB  
+    👨‍🔬 Dr. Sridhar Sivasubbu, Scientist, CSIR-IGIB  
+    🏢 CSIR-Institute of Genomics and Integrative Biology, Mathura Road, New Delhi
+    """)
 
 elif page == "Bubble & Heatmaps":
     st.title("📊 Bubble Plot & Heatmap")
