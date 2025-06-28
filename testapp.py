@@ -85,57 +85,34 @@ page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact
 
 
 if page == "Home":
-    if os.path.exists(logo_url):
-        st.markdown(f"""
-        <style>
-            .home-header {{
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(to bottom right, #00a8e8, #0077b6);
-                color: white;
-                padding: 2rem;
-                border-radius: 10px;
-                margin-bottom: 2rem;
-            }}
-            .home-header img {{
-                width: 90px;
-                margin-right: 1.5rem;
-            }}
-            .home-header h1 {{
-                font-size: 32px;
-                margin: 0;
-                line-height: 1.3;
-            }}
-        </style>
-        <div class='home-header'>
-            <img src='{logo_url}' alt='Logo'>
-            <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <style>
-            .home-header {{
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background: linear-gradient(to bottom right, #00a8e8, #0077b6);
-                color: white;
-                padding: 2rem;
-                border-radius: 10px;
-                margin-bottom: 2rem;
-            }}
-            .home-header h1 {{
-                font-size: 32px;
-                margin: 0;
-                line-height: 1.3;
-            }}
-        </style>
-        <div class='home-header'>
-            <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown(f"""
+    <style>
+        .home-header {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom right, #00a8e8, #0077b6);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+        }}
+        .home-header img {{
+            width: 90px;
+            margin-right: 1.5rem;
+        }}
+        .home-header h1 {{
+            font-size: 32px;
+            margin: 0;
+            line-height: 1.3;
+        }}
+    </style>
+    <div class='home-header'>
+        <a href='/?page=Home'><img src='{logo_url}' alt='Logo'></a>
+        <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
+    </div>
+    """, unsafe_allow_html=True)
+    
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
