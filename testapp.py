@@ -86,7 +86,7 @@ page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact
 
 if page == "Home":
     if os.path.exists(logo_url):
-    st.markdown(f"""
+        st.markdown(f"""
     <style>
         .home-header {{
             display: flex;
@@ -113,8 +113,8 @@ if page == "Home":
         <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
     </div>
     """, unsafe_allow_html=True)
-else:
-    st.markdown(f"""
+    else:
+        st.markdown(f"""
     <style>
         .home-header {{
             display: flex;
