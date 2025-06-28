@@ -63,7 +63,7 @@ def create_links(row):
     return links
 
 # AI summary using OpenAI (new API syntax for openai>=1.0.0)
-client = OpenAI(api_key=st.secrets["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"])
+client = OpenAI(api_key=st.secrets["openai_api_key"])
 
 def ai_summary(comment):
     if pd.isna(comment) or comment.strip() == "":
