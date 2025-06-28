@@ -59,20 +59,23 @@ def create_links(row):
         links.append(f"[OMIM](https://www.omim.org/entry/{urllib.parse.quote(omim_id)})")
     return " | ".join(links)
 
-# AI summary using OpenAI (requires API key)
+# AI summary using OpenAI (new API syntax for openai>=1.0.0)
+from openai import OpenAI
+
+client = OpenAI(api_key=st.secrets["openai_api_key"])
+
 def ai_summary(comment):
     if pd.isna(comment) or comment.strip() == "":
         return "No comment to summarize."
     try:
-        openai.api_key = st.secrets["openai_api_key"]
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "Summarize this genetic variant comment in one sentence."},
                 {"role": "user", "content": comment}
             ]
         )
-        return response["choices"][0]["message"]["content"].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
         return f"[Error summarizing] {str(e)}"
 
