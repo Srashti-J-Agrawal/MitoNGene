@@ -85,6 +85,12 @@ page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact
 
 
 if page == "Home":
+    query = st.text_input("🔍 Search Variant / Gene / Disease / Phenotype", placeholder="Phenotype/Gene/Variant/Disease")
+    if query:
+        query = query.lower()
+        filtered_df = df[df.apply(lambda row: row.astype(str).str.lower().str.contains(query).any(), axis=1)]
+        st.write(f"### Showing {len(filtered_df)} matching result(s)")
+        st.dataframe(filtered_df, use_container_width=True)
     if os.path.exists(logo_url):
         st.markdown(f"""
         <style>
