@@ -267,9 +267,6 @@ elif 'entry' in st.query_params:
         else:
             st.warning(f"No entry found for ID: {entry_id}")
 
-else:
-        st.error("No entry found for this ID.")
-
 elif page == "Bubble & Heatmaps":
     st.title("📊 Bubble Plot & Heatmap")
     if "refGene" in df.columns and "Disease" in df.columns:
