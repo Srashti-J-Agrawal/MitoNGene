@@ -85,33 +85,36 @@ page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact
 
 
 if page == "Home":
-    st.markdown(f"""
-    <style>
-        .home-header {{
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(to bottom right, #00a8e8, #0077b6);
-            color: white;
-            padding: 2rem;
-            border-radius: 10px;
-            margin-bottom: 2rem;
-        }}
-        .home-header img {{
-            width: 90px;
-            margin-right: 1.5rem;
-        }}
-        .home-header h1 {{
-            font-size: 32px;
-            margin: 0;
-            line-height: 1.3;
-        }}
-    </style>
-    <div class='home-header'>
-        <a href='/?page=Home'><img src='{logo_url}' alt='Logo'></a>
-        <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
-    </div>
-    """, unsafe_allow_html=True)
+    if os.path.exists(logo_url):
+        st.markdown(f"""
+        <style>
+            .home-header {{
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(to bottom right, #00a8e8, #0077b6);
+                color: white;
+                padding: 2rem;
+                border-radius: 10px;
+                margin-bottom: 2rem;
+            }}
+            .home-header img {{
+                width: 90px;
+                margin-right: 1.5rem;
+            }}
+            .home-header h1 {{
+                font-size: 32px;
+                margin: 0;
+                line-height: 1.3;
+            }}
+        </style>
+        <div class='home-header'>
+            <a href='/?page=Home'><img src='{logo_url}' alt='Logo'></a>
+            <h1>Nuclear-encoded Mitochondrial Disease<br>Variants Database</h1>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("### Nuclear-encoded Mitochondrial Disease Variants Database")
     
 
     col1, col2, col3, col4 = st.columns(4)
@@ -128,12 +131,7 @@ if page == "Home":
         st.markdown("<div class='metric-title'>Total number of publications</div>", unsafe_allow_html=True)
         st.metric(label="", value=total_publications)
 
-    st.markdown("### 📊 Breakdown")
-    metric1, metric2, metric3, metric4 = st.columns(4)
-    metric1.metric("Total number of genes", total_genes)
-    metric2.metric("Total number of diseases", total_diseases)
-    metric3.metric("Total number of variants", total_variants)
-    metric4.metric("Total number of publications", total_publications)
+    
 
     st.markdown("### 📊 Breakdown")
     if "Disease" in df.columns:
@@ -167,7 +165,40 @@ elif page == "By Phenotype":
     if "Phenotype" in df.columns:
         phenotype = st.selectbox("Select Phenotype", sorted(df["Phenotype"].dropna().unique()))
         phenotype_df = df[df["Phenotype"] == phenotype]
-        st.dataframe(phenotype_df, use_container_width=True)
+
+        st.markdown("""
+        <style>
+            .variant-card {
+                background-color: #f0f9ff;
+                padding: 1rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                margin-bottom: 1rem;
+            }
+            .variant-card h4 {
+                margin-bottom: 0.2rem;
+            }
+            .variant-card a {
+                text-decoration: none;
+                font-weight: bold;
+                color: #0077b6;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+
+        for i, row in phenotype_df.iterrows():
+            unique_id = urllib.parse.quote(str(row['Merged']))
+            with st.container():
+                st.markdown(f"""
+                <div class='variant-card'>
+                    <h4>{row['refGene']} – {row['Merged']}</h4>
+                    <p><b>Disease:</b> {row['Disease']}<br>
+                       <b>Phenotype:</b> {row['Phenotype']}<br>
+                       <b>Mutation:</b> {row['FunctionalRef']}<br>
+                       <a href='/?entry={unique_id}'>🔗 View full entry</a>
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
     else:
         st.warning("No phenotype data available.")
 
@@ -220,6 +251,24 @@ elif page == "Contact Us":
     👨‍🔬 Dr. Sridhar Sivasubbu, Scientist, CSIR-IGIB  
     🏢 CSIR-Institute of Genomics and Integrative Biology, Mathura Road, New Delhi
     """)
+
+elif 'entry' in st.query_params:
+    entries = st.query_params.get('entry')
+    if isinstance(entries, str):
+        entries = [entries]
+    for entry_id in entries:
+        entry_id = urllib.parse.unquote(entry_id)
+        entry_df = df[df['Merged'] == entry_id]
+        if not entry_df.empty:
+            st.markdown(f"## 🧬 Entry: {entry_id}")
+            with st.expander(f"Details for {entry_id}", expanded=True):
+                for col in entry_df.columns:
+                    st.markdown(f"**{col}**: {entry_df.iloc[0][col]}")
+        else:
+            st.warning(f"No entry found for ID: {entry_id}")
+
+else:
+        st.error("No entry found for this ID.")
 
 elif page == "Bubble & Heatmaps":
     st.title("📊 Bubble Plot & Heatmap")
