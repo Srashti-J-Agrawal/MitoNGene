@@ -79,7 +79,7 @@ if not os.path.exists(logo_url):
 
 # Sidebar navigation
 st.sidebar.title("🔍 Navigate")
-page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact Us", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps"])
+page = st.sidebar.radio("Go to", ["Home", "About", "VCF Parse", "Help", "Contact Us", "Browse All Variants", "By Gene", "By Disease", "By Phenotype", "Gene Diagram", "Bubble & Heatmaps", "Variant Filtering"])
 
 
 
@@ -232,6 +232,34 @@ elif page == "About":
     It is designed for researchers, clinicians, and bioinformaticians to explore genotype-phenotype relationships
     across curated literature and ClinVar sources.
     """)
+
+elif page == "Variant Filtering":
+    st.title("🔍 Variant Filtering from VCF")
+
+    vcf_file = st.file_uploader("Upload a VCF file", type=["vcf"])
+
+    if vcf_file:
+        vcf_data = [line.decode("utf-8").strip() for line in vcf_file if not line.decode("utf-8").startswith("#")]
+        vcf_df = pd.DataFrame([line.split("	") for line in vcf_data], columns=["CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO"])
+
+        # Normalize CHROM column (remove 'chr' prefix if present)
+        vcf_df["CHROM"] = vcf_df["CHROM"].str.replace("chr", "", case=False)
+
+        # Create a combined key for matching
+        vcf_df["vcf_key"] = vcf_df["CHROM"] + ":" + vcf_df["POS"] + ":" + vcf_df["REF"] + ":" + vcf_df["ALT"]
+
+        if all(col in df.columns for col in ["Chr", "Start", "Ref", "Alt"]):
+            df["db_key"] = df["Chr"].astype(str).str.replace("chr", "", case=False) + ":" + df["Start"].astype(str) + ":" + df["Ref"].astype(str) + ":" + df["Alt"].astype(str)
+
+            # Match entries where all 4 fields match exactly
+            filtered = df[df["db_key"].isin(vcf_df["vcf_key"])]
+        else:
+            filtered = pd.DataFrame()
+
+        st.success(f"Found {len(filtered)} matching variants in the database.")
+
+        if not filtered.empty:
+            st.dataframe(filtered, use_container_width=True)
 
 elif page == "VCF Parse":
     st.title("🧬 VCF Parse (Coming Soon)")
