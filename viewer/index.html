@@ -1,0 +1,133 @@
+---
+layout: default
+title: Data Viewer
+---
+
+<link href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css" rel="stylesheet">
+<script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
+
+<style>
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 12px 0;
+  }
+  input, select {
+    padding: 8px;
+  }
+  #table {
+    margin-top: 12px;
+  }
+  .note {
+    font-size: 0.95em;
+    opacity: 0.9;
+  }
+</style>
+
+<h1 id="title">Dataset</h1>
+<p id="desc" class="note"></p>
+
+<div class="controls">
+  <label>
+    Global search:
+    <input id="globalFilter" placeholder="Type to filter rows..." />
+  </label>
+
+  <label>
+    Rows per page:
+    <select id="pageSize">
+      <option>25</option>
+      <option selected>50</option>
+      <option>100</option>
+      <option>200</option>
+    </select>
+  </label>
+</div>
+
+<div id="table"></div>
+
+<script>
+  function param(name) {
+    return new URL(window.location.href).searchParams.get(name);
+  }
+
+  function tsvToObjects(text) {
+    const lines = text.trim().split(/\r?\n/);
+    const headers = lines[0].split("\t");
+    return lines.slice(1).map(line => {
+      const cells = line.split("\t");
+      const obj = {};
+      headers.forEach((h, i) => {
+        obj[h] = cells[i] ?? "";
+      });
+      return obj;
+    });
+  }
+
+  async function main() {
+    const file = param("file");
+    const title = param("title") || "Dataset";
+    const desc  = param("desc")  || "";
+
+    document.getElementById("title").textContent = title;
+    document.getElementById("desc").textContent  = desc;
+
+    if (!file) {
+      document.getElementById("desc").textContent = "No file specified.";
+      return;
+    }
+
+    const res = await fetch(file, { cache: "no-store" });
+    if (!res.ok) {
+      document.getElementById("desc").textContent = "Could not load: " + file;
+      return;
+    }
+
+    const text = await res.text();
+    const data = tsvToObjects(text);
+
+    if (!data.length) {
+      document.getElementById("desc").textContent = "Loaded, but no rows found.";
+      return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const columns = headers.map(h => ({
+      title: h,
+      field: h,
+      headerFilter: true,
+      sorter: "string"
+    }));
+
+    const table = new Tabulator("#table", {
+      data,
+      columns,
+      layout: "fitDataStretch",
+      pagination: true,
+      paginationSize: 50,
+      height: "70vh"
+    });
+
+    document.getElementById("pageSize").addEventListener("change", e => {
+      table.setPageSize(parseInt(e.target.value, 10));
+    });
+
+    const input = document.getElementById("globalFilter");
+    input.addEventListener("input", () => {
+      const q = input.value.toLowerCase();
+      if (!q) {
+        table.clearFilter(true);
+        return;
+      }
+      table.setFilter(row =>
+        Object.values(row).some(v =>
+          String(v).toLowerCase().includes(q)
+        )
+      );
+    });
+  }
+
+  main();
+</script>
