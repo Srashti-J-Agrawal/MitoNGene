@@ -17,6 +17,6 @@
   transform: translateX(-50%);
   width: 72px;
   height: 72px;
-  background: url("{{ '/assets/mitongene_logo.png' | relative_url }}") no-repeat center / contain;
+  background: url("{{ '/assets/mitongene_logo.PNG' | relative_url }}") no-repeat center / contain;
   pointer-events: none;
 }
