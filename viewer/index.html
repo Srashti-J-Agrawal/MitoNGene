@@ -1,4 +1,3 @@
-
 ---
 layout: default
 title: Data Viewer
@@ -8,32 +7,185 @@ title: Data Viewer
 <script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
 
 <style>
-  .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:12px 0}
-  input,select{padding:8px}
-  #table{margin-top:12px}
-  .note{font-size:0.95em;opacity:0.9}
-  .error{padding:10px;border:1px solid #d33;background:#fff5f5;border-radius:8px}
+  :root{
+    --container-max: 1400px;
+    --surface: #ffffff;
+    --text: #111827;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --bg: #f8fafc;
+    --shadow: 0 10px 30px rgba(0,0,0,0.08);
+    --radius: 14px;
+  }
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .wrap{
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 22px 18px 28px;
+  }
+
+  /* Brand header */
+  .brandbar{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding: 16px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .brandbar img{
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    border-radius: 12px;
+    background: #fff;
+  }
+  .brandtext{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width: 0;
+  }
+  #title{
+    margin: 0;
+    font-size: 1.65rem;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  #desc{
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.98rem;
+    line-height: 1.35;
+  }
+
+  /* Error */
+  .error{
+    margin-top: 14px;
+    padding: 12px 14px;
+    border: 1px solid #fca5a5;
+    background: #fff5f5;
+    border-radius: 12px;
+  }
+
+  /* Controls */
+  .controls{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    margin: 14px 0 10px;
+  }
+  .controls label{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    font-size: 0.92rem;
+    color: var(--muted);
+  }
+  input, select{
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    color: var(--text);
+    min-width: 220px;
+    outline: none;
+  }
+  select{ min-width: 140px; }
+  input:focus, select:focus{
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(147,197,253,0.35);
+  }
+
+  /* Table card */
+  #tableCard{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 10px;
+  }
+  #table{
+    margin-top: 6px;
+  }
+
+  /* Tabulator readability tweaks (CSS only) */
+  .tabulator{
+    font-size: 0.92rem;
+  }
+  .tabulator .tabulator-header{
+    border-bottom: 1px solid var(--border);
+  }
+  .tabulator .tabulator-header .tabulator-col{
+    background: #f9fafb;
+    border-right: 1px solid var(--border);
+  }
+  .tabulator .tabulator-row{
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .tabulator .tabulator-row:hover{
+    background: #f9fafb;
+  }
+  .tabulator .tabulator-cell{
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* Modal: keep your inline styles working, just improve typography a bit */
+  #modalBody{
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: var(--text);
+  }
+
+  /* Small screens */
+  @media (max-width: 640px){
+    .brandbar{ padding: 14px; }
+    .brandbar img{ width: 48px; height: 48px; }
+    input{ min-width: 100%; }
+    select{ min-width: 100%; }
+  }
 </style>
 
-<h1 id="title">Dataset</h1>
-<p id="desc" class="note"></p>
-<div id="err" class="error" style="display:none"></div>
+<div class="wrap">
 
-<div class="controls">
-  <label>Global search:
-    <input id="globalFilter" placeholder="Type to filter rows..." />
-  </label>
-  <label>Rows per page:
-    <select id="pageSize">
-      <option>25</option>
-      <option selected>50</option>
-      <option>100</option>
-      <option>200</option>
-    </select>
-  </label>
+  <header class="brandbar">
+    <img src="assets/mitongene_logo.png" alt="MitoNGene logo">
+    <div class="brandtext">
+      <h1 id="title">Dataset</h1>
+      <p id="desc"></p>
+    </div>
+  </header>
+
+  <div id="err" class="error" style="display:none"></div>
+
+  <div class="controls">
+    <label>Global search
+      <input id="globalFilter" placeholder="Type to filter rows..." />
+    </label>
+    <label>Rows per page
+      <select id="pageSize">
+        <option>25</option>
+        <option selected>50</option>
+        <option>100</option>
+        <option>200</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="tableCard">
+    <div id="table"></div>
+  </div>
+
 </div>
-
-<div id="table"></div>
 
 <!-- Modal for expanded cell text -->
 <div id="modalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; padding:20px; align-items:center; justify-content:center;">
@@ -213,4 +365,3 @@ title: Data Viewer
 
   main();
 </script>
-
