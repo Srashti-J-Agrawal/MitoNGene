@@ -140,17 +140,19 @@ title: Data Viewer
 
 var openModal = setupModal();
 
-var headers = Object.keys(data[0]);
-
-// Columns that should be truncated + expandable.
-// Add more names here later if needed.
+// Columns that should always be truncated + expandable
 var TRUNCATE_COLS = {
-  "Patient_Description": true
+  "Patient_Description": true,
+  "Columns": true,
+  "HGVS_NM": true
 };
 
+
+var openModal = setupModal();
+
 var columns = headers.map(function(h){
-  // Apply truncation only to selected verbose columns
-  if(TRUNCATE_COLS[h]){
+  // Truncated, expandable columns
+  if (TRUNCATE_COLS[h]) {
     return {
       title: h,
       field: h,
@@ -158,28 +160,32 @@ var columns = headers.map(function(h){
       sorter: "string",
       formatter: function(cell){
         var full = String(cell.getValue() || "");
-        var shown = previewText(full);
+        var shown = previewText(full)
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;");
 
-        // Escape < and > so text can't break HTML
-        shown = shown.replace(/</g,"&lt;").replace(/>/g,"&gt;");
-
-        // Only show "click" affordance if long
-        var tip = (full.length > PREVIEW_LEN) ? ' title="Click to expand"' : '';
-        var cur = (full.length > PREVIEW_LEN) ? 'cursor:pointer;' : '';
-
-        return '<span'+tip+' style="'+cur+' white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:520px;">'+ shown +'</span>';
+        return (
+          '<span ' +
+          'style="cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:520px;" ' +
+          'title="Click to expand">' +
+          shown +
+          '</span>'
+        );
       },
       cellClick: function(e, cell){
-        var full = String(cell.getValue() || "");
-        if(full.length > PREVIEW_LEN) openModal(h, full);
+        openModal(h, cell.getValue());
       }
     };
   }
 
-  // Default for all other columns
-  return {title:h, field:h, headerFilter:true, sorter:"string"};
+  // Default columns
+  return {
+    title: h,
+    field: h,
+    headerFilter: true,
+    sorter: "string"
+  };
 });
-
 
     var table = new Tabulator("#table",{
       data:data,
