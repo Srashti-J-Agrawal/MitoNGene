@@ -3,84 +3,26 @@ layout: default
 title: Data Viewer
 ---
 
-<link href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css" rel="stylesheet">
-<script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.0/dist/css/tabulator.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
 
 <style>
-  .controls {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    align-items: center;
-    margin: 12px 0;
-  }
-  input, select {
-    padding: 8px;
-  }
-  #table {
-    margin-top: 12px;
-  }
-  .note {
-    font-size: 0.95em;
-    opacity: 0.9;
-  }
-    .cell-preview{
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .modal-backdrop{
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.55);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    padding: 20px;
-  }
-  .modal{
-    background: #fff;
-    max-width: 900px;
-    width: 100%;
-    max-height: 80vh;
-    overflow: auto;
-    border-radius: 10px;
-    padding: 18px 18px 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  }
-  .modal h3{ margin: 0 0 10px; }
-  .modal pre{
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    background: #f6f8fa;
-    padding: 12px;
-    border-radius: 8px;
-    margin: 0;
-  }
-  .modal .close-row{
-    display:flex;
-    justify-content: space-between;
-    align-items:center;
-    gap:12px;
-    margin-bottom: 10px;
-  }
-  .modal button{
-    padding: 6px 10px;
-    cursor: pointer;
-  }
+  .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:12px 0}
+  input,select{padding:8px}
+  #table{margin-top:12px}
+  .note{font-size:0.95em;opacity:0.9}
+  .error{padding:10px;border:1px solid #d33;background:#fff5f5;border-radius:8px}
 </style>
 
 <h1 id="title">Dataset</h1>
 <p id="desc" class="note"></p>
+<div id="err" class="error" style="display:none"></div>
 
 <div class="controls">
-  <label>
-    Global search:
+  <label>Global search:
     <input id="globalFilter" placeholder="Type to filter rows..." />
   </label>
-
-  <label>
-    Rows per page:
+  <label>Rows per page:
     <select id="pageSize">
       <option>25</option>
       <option selected>50</option>
@@ -92,141 +34,99 @@ title: Data Viewer
 
 <div id="table"></div>
 
-<div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
-  <div class="modal">
-    <div class="close-row">
-      <h3 id="modalTitle">Full text</h3>
-      <button id="modalClose" type="button">Close</button>
-    </div>
-    <pre id="modalBody"></pre>
-  </div>
-</div>
-
 <script>
-  function param(name)
-    const PREVIEW_LEN = 140; // change to 120/160 if you prefer
-
-  function previewText(v){
-    const s = String(v ?? "");
-    if (s.length <= PREVIEW_LEN) return s;
-    return s.slice(0, PREVIEW_LEN) + "…";
+  function showErr(msg){
+    var el = document.getElementById("err");
+    el.style.display = "block";
+    el.textContent = msg;
   }
 
-  function setupModal(){
-    const backdrop = document.getElementById("modalBackdrop");
-    const closeBtn = document.getElementById("modalClose");
-    const body = document.getElementById("modalBody");
-    const title = document.getElementById("modalTitle");
-
-    function close(){
-      backdrop.style.display = "none";
-      body.textContent = "";
-      title.textContent = "Full text";
-    }
-
-    closeBtn.addEventListener("click", close);
-    backdrop.addEventListener("click", (e)=>{ if(e.target === backdrop) close(); });
-    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") close(); });
-
-    return function open(fieldName, fullText){
-      title.textContent = fieldName ? `Full text — ${fieldName}` : "Full text";
-      body.textContent = String(fullText ?? "");
-      backdrop.style.display = "flex";
-    };
-  }
-{
+  function param(name){
     return new URL(window.location.href).searchParams.get(name);
   }
 
-  function tsvToObjects(text) {
-    const lines = text.trim().split(/\r?\n/);
-    const headers = lines[0].split("\t");
-    return lines.slice(1).map(line => {
-      const cells = line.split("\t");
-      const obj = {};
-      headers.forEach((h, i) => {
-        obj[h] = cells[i] ?? "";
-      });
-      return obj;
-    });
+  function tsvToObjects(text){
+    var lines = text.trim().split(/\r?\n/);
+    var headers = lines[0].split("\t");
+    var out = [];
+    for(var r=1; r<lines.length; r++){
+      var cells = lines[r].split("\t");
+      var obj = {};
+      for(var i=0; i<headers.length; i++){
+        obj[headers[i]] = (cells[i] !== undefined ? cells[i] : "");
+      }
+      out.push(obj);
+    }
+    return out;
   }
 
-  async function main() {
-    const file = param("file");
-    const title = param("title") || "Dataset";
-    const desc  = param("desc")  || "";
+  async function main(){
+    var file = param("file");
+    var title = param("title") || "Dataset";
+    var desc  = param("desc")  || "";
 
     document.getElementById("title").textContent = title;
     document.getElementById("desc").textContent  = desc;
 
-    if (!file) {
-      document.getElementById("desc").textContent = "No file specified.";
+    if(!file){
+      showErr("No file specified. Add ?file=../sheets/yourfile.tsv");
       return;
     }
 
-    const res = await fetch(file, { cache: "no-store" });
-    if (!res.ok) {
-      document.getElementById("desc").textContent = "Could not load: " + file;
+    if(typeof Tabulator === "undefined"){
+      showErr("Tabulator failed to load. Check network/CDN access.");
       return;
     }
 
-    const text = await res.text();
-    const data = tsvToObjects(text);
-
-    if (!data.length) {
-      document.getElementById("desc").textContent = "Loaded, but no rows found.";
+    var res = await fetch(file, {cache:"no-store"});
+    if(!res.ok){
+      showErr("Could not load file (" + res.status + "): " + file);
       return;
     }
 
-       const openModal = setupModal();
+    var text = await res.text();
+    // If we accidentally fetched HTML (like a 404 page), show it
+    if(text.slice(0, 20).toLowerCase().indexOf("<!doctype") !== -1 ||
+       text.slice(0, 20).toLowerCase().indexOf("<html") !== -1){
+      showErr("Fetched HTML instead of TSV. Check the file path: " + file);
+      return;
+    }
 
-    const headers = Object.keys(data[0]);
-    const columns = headers.map(h => ({
-      title: h,
-      field: h,
-      headerFilter: true,
-      sorter: "string",
-      formatter: (cell) => {
-        const v = cell.getValue();
-        const full = String(v ?? "");
-        // show preview if long, otherwise show full
-        const shown = (full.length > PREVIEW_LEN) ? previewText(full) : full;
-        return `<span class="cell-preview" title="Click to view full text">${shown}</span>`;
-      },
-      cellClick: (e, cell) => {
-        const full = cell.getValue();
-        if (full == null) return;
-        const s = String(full);
-        // Only open modal if it's actually long (prevents annoyance)
-        if (s.length > PREVIEW_LEN) openModal(h, s);
-      }
-    }));
+    var data = tsvToObjects(text);
+    if(!data.length){
+      showErr("Loaded file but found 0 rows. Check TSV formatting.");
+      return;
+    }
 
-    const table = new Tabulator("#table", {
-      data,
-      columns,
-      layout: "fitDataStretch",
-      pagination: true,
-      paginationSize: 50,
-      height: "70vh"
+    var headers = Object.keys(data[0]);
+    var columns = headers.map(function(h){
+      return {title:h, field:h, headerFilter:true, sorter:"string"};
     });
 
-    document.getElementById("pageSize").addEventListener("change", e => {
-      table.setPageSize(parseInt(e.target.value, 10));
+    var table = new Tabulator("#table",{
+      data:data,
+      columns:columns,
+      layout:"fitDataStretch",
+      pagination:true,
+      paginationSize:50,
+      height:"70vh"
     });
 
-    const input = document.getElementById("globalFilter");
-    input.addEventListener("input", () => {
-      const q = input.value.toLowerCase();
-      if (!q) {
-        table.clearFilter(true);
-        return;
-      }
-      table.setFilter(row =>
-        Object.values(row).some(v =>
-          String(v).toLowerCase().includes(q)
-        )
-      );
+    document.getElementById("pageSize").addEventListener("change", function(e){
+      table.setPageSize(parseInt(e.target.value,10));
+    });
+
+    var input = document.getElementById("globalFilter");
+    input.addEventListener("input", function(){
+      var q = input.value.toLowerCase();
+      if(!q){ table.clearFilter(true); return; }
+      table.setFilter(function(row){
+        var vals = Object.values(row);
+        for(var i=0; i<vals.length; i++){
+          if(String(vals[i]).toLowerCase().indexOf(q) !== -1) return true;
+        }
+        return false;
+      });
     });
   }
 
