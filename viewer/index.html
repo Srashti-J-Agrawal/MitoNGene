@@ -1,3 +1,4 @@
+
 ---
 layout: default
 title: Data Viewer
@@ -34,6 +35,7 @@ title: Data Viewer
 
 <div id="table"></div>
 
+<!-- Modal for expanded cell text -->
 <div id="modalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; padding:20px; align-items:center; justify-content:center;">
   <div style="background:#fff; max-width:900px; width:100%; max-height:80vh; overflow:auto; border-radius:10px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
     <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
@@ -57,6 +59,7 @@ title: Data Viewer
 
   function tsvToObjects(text){
     var lines = text.trim().split(/\r?\n/);
+    if(lines.length < 2) return [];
     var headers = lines[0].split("\t");
     var out = [];
     for(var r=1; r<lines.length; r++){
@@ -69,12 +72,17 @@ title: Data Viewer
     }
     return out;
   }
-  var PREVIEW_LEN = 140; // change later if you want
+
+  var PREVIEW_LEN = 140;
 
   function previewText(s){
     s = String(s || "");
     if(s.length <= PREVIEW_LEN) return s;
     return s.slice(0, PREVIEW_LEN) + "…";
+  }
+
+  function escapeHtml(s){
+    return String(s || "").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   }
 
   function setupModal(){
@@ -125,9 +133,10 @@ title: Data Viewer
     }
 
     var text = await res.text();
+
     // If we accidentally fetched HTML (like a 404 page), show it
-    if(text.slice(0, 20).toLowerCase().indexOf("<!doctype") !== -1 ||
-       text.slice(0, 20).toLowerCase().indexOf("<html") !== -1){
+    var head = text.slice(0, 40).toLowerCase();
+    if(head.indexOf("<!doctype") !== -1 || head.indexOf("<html") !== -1){
       showErr("Fetched HTML instead of TSV. Check the file path: " + file);
       return;
     }
@@ -138,62 +147,50 @@ title: Data Viewer
       return;
     }
 
-var openModal = setupModal();
+    var headers = Object.keys(data[0]);
+    var openModal = setupModal();
 
-// Columns that should always be truncated + expandable
-var TRUNCATE_COLS = {
-  "Patient_Description": true,
-  "Columns": true,
-  "HGVS_NM": true
-};
-
-
-var openModal = setupModal();
-
-var columns = headers.map(function(h){
-  // Truncated, expandable columns
-  if (TRUNCATE_COLS[h]) {
-    return {
-      title: h,
-      field: h,
-      headerFilter: true,
-      sorter: "string",
-      formatter: function(cell){
-        var full = String(cell.getValue() || "");
-        var shown = previewText(full)
-          .replace(/</g,"&lt;")
-          .replace(/>/g,"&gt;");
-
-        return (
-          '<span ' +
-          'style="cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:520px;" ' +
-          'title="Click to expand">' +
-          shown +
-          '</span>'
-        );
-      },
-      cellClick: function(e, cell){
-        openModal(h, cell.getValue());
-      }
+    // Columns to truncate + expand
+    var TRUNCATE_COLS = {
+      "Patient_Description": true,
+      "Columns": true,
+      "HGVS_NM": true
     };
-  }
 
-  // Default columns
-  return {
-    title: h,
-    field: h,
-    headerFilter: true,
-    sorter: "string"
-  };
-});
+    var columns = headers.map(function(h){
+      if(TRUNCATE_COLS[h]){
+        return {
+          title: h,
+          field: h,
+          headerFilter: true,
+          sorter: "string",
+          formatter: function(cell){
+            var full = String(cell.getValue() || "");
+            var shown = escapeHtml(previewText(full));
+            return (
+              '<span ' +
+              'style="cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:520px;" ' +
+              'title="Click to expand">' +
+              shown +
+              '</span>'
+            );
+          },
+          cellClick: function(e, cell){
+            openModal(h, cell.getValue());
+          }
+        };
+      }
+
+      return {title:h, field:h, headerFilter:true, sorter:"string"};
+    });
 
     var table = new Tabulator("#table",{
-      data:data,
-      columns:columns,
-      layout:"fitDataStretch",
-      pagination:true,
-      paginationSize:50,
-      height:"70vh"
+      data: data,
+      columns: columns,
+      layout: "fitDataStretch",
+      pagination: true,
+      paginationSize: 50,
+      height: "70vh"
     });
 
     document.getElementById("pageSize").addEventListener("change", function(e){
@@ -216,3 +213,4 @@ var columns = headers.map(function(h){
 
   main();
 </script>
+
