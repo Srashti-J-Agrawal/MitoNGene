@@ -8,6 +8,7 @@ title: MitoNGene
 A curated mitochondrial gene and variant resource.
 
 ## Data sheets
-- [Dataset 1](sheet1/)
-- [Dataset 2](sheet2/)
-- [Dataset 3](sheet3/)
+- [Expert-curated mitochondrial disease variants with patient descriptions](datasets/curation/)
+- [Annotations of mitochondrial disease variants](datasets/annotations/)
+- [MitoNGene-AI predictions of gnomAD variants in AR-ICID genes](datasets/predictions/)
+
