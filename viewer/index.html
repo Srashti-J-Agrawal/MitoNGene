@@ -257,8 +257,10 @@ title: Data Viewer
     var title = param("title") || "Dataset";
     var desc  = param("desc")  || "";
 
-    document.getElementById("title").textContent = title;
-    document.getElementById("desc").textContent  = desc;
+    var titleEl = document.getElementById("title");
+    var descEl  = document.getElementById("desc");
+    if(titleEl) titleEl.textContent = title;
+    if(descEl)  descEl.textContent  = desc;
 
     if(!file){
       showErr("No file specified. Add ?file=../sheets/yourfile.tsv");
