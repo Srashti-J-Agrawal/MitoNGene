@@ -34,6 +34,16 @@ title: Data Viewer
 
 <div id="table"></div>
 
+<div id="modalBackdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; padding:20px; align-items:center; justify-content:center;">
+  <div style="background:#fff; max-width:900px; width:100%; max-height:80vh; overflow:auto; border-radius:10px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
+      <h3 id="modalTitle" style="margin:0;">Full text</h3>
+      <button id="modalClose" type="button" style="padding:6px 10px; cursor:pointer;">Close</button>
+    </div>
+    <pre id="modalBody" style="white-space:pre-wrap; word-wrap:break-word; background:#f6f8fa; padding:12px; border-radius:8px; margin:0;"></pre>
+  </div>
+</div>
+
 <script>
   function showErr(msg){
     var el = document.getElementById("err");
@@ -58,6 +68,36 @@ title: Data Viewer
       out.push(obj);
     }
     return out;
+  }
+  var PREVIEW_LEN = 140; // change later if you want
+
+  function previewText(s){
+    s = String(s || "");
+    if(s.length <= PREVIEW_LEN) return s;
+    return s.slice(0, PREVIEW_LEN) + "…";
+  }
+
+  function setupModal(){
+    var backdrop = document.getElementById("modalBackdrop");
+    var closeBtn = document.getElementById("modalClose");
+    var titleEl = document.getElementById("modalTitle");
+    var bodyEl = document.getElementById("modalBody");
+
+    function close(){
+      backdrop.style.display = "none";
+      titleEl.textContent = "Full text";
+      bodyEl.textContent = "";
+    }
+
+    closeBtn.addEventListener("click", close);
+    backdrop.addEventListener("click", function(e){ if(e.target === backdrop) close(); });
+    document.addEventListener("keydown", function(e){ if(e.key === "Escape") close(); });
+
+    return function open(fieldName, fullText){
+      titleEl.textContent = "Full text — " + fieldName;
+      bodyEl.textContent = String(fullText || "");
+      backdrop.style.display = "flex";
+    };
   }
 
   async function main(){
@@ -98,10 +138,50 @@ title: Data Viewer
       return;
     }
 
-    var headers = Object.keys(data[0]);
-    var columns = headers.map(function(h){
-      return {title:h, field:h, headerFilter:true, sorter:"string"};
-    });
+var openModal = setupModal();
+
+var headers = Object.keys(data[0]);
+
+// Columns that should be truncated + expandable.
+// Add more names here later if needed.
+var TRUNCATE_COLS = {
+  "PatientDescription": true,
+  "patient_description": true,
+  "Patient Description": true
+};
+
+var columns = headers.map(function(h){
+  // Apply truncation only to selected verbose columns
+  if(TRUNCATE_COLS[h]){
+    return {
+      title: h,
+      field: h,
+      headerFilter: true,
+      sorter: "string",
+      formatter: function(cell){
+        var full = String(cell.getValue() || "");
+        var shown = previewText(full);
+
+        // Escape < and > so text can't break HTML
+        shown = shown.replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+        // Only show "click" affordance if long
+        var tip = (full.length > PREVIEW_LEN) ? ' title="Click to expand"' : '';
+        var cur = (full.length > PREVIEW_LEN) ? 'cursor:pointer;' : '';
+
+        return '<span'+tip+' style="'+cur+' white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:520px;">'+ shown +'</span>';
+      },
+      cellClick: function(e, cell){
+        var full = String(cell.getValue() || "");
+        if(full.length > PREVIEW_LEN) openModal(h, full);
+      }
+    };
+  }
+
+  // Default for all other columns
+  return {title:h, field:h, headerFilter:true, sorter:"string"};
+});
+
 
     var table = new Tabulator("#table",{
       data:data,
