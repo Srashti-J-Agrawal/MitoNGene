@@ -24,6 +24,50 @@ title: Data Viewer
     font-size: 0.95em;
     opacity: 0.9;
   }
+    .cell-preview{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .modal-backdrop{
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+  }
+  .modal{
+    background: #fff;
+    max-width: 900px;
+    width: 100%;
+    max-height: 80vh;
+    overflow: auto;
+    border-radius: 10px;
+    padding: 18px 18px 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .modal h3{ margin: 0 0 10px; }
+  .modal pre{
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: #f6f8fa;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 0;
+  }
+  .modal .close-row{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    gap:12px;
+    margin-bottom: 10px;
+  }
+  .modal button{
+    padding: 6px 10px;
+    cursor: pointer;
+  }
 </style>
 
 <h1 id="title">Dataset</h1>
@@ -48,8 +92,49 @@ title: Data Viewer
 
 <div id="table"></div>
 
+<div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="close-row">
+      <h3 id="modalTitle">Full text</h3>
+      <button id="modalClose" type="button">Close</button>
+    </div>
+    <pre id="modalBody"></pre>
+  </div>
+</div>
+
 <script>
-  function param(name) {
+  function param(name)
+    const PREVIEW_LEN = 140; // change to 120/160 if you prefer
+
+  function previewText(v){
+    const s = String(v ?? "");
+    if (s.length <= PREVIEW_LEN) return s;
+    return s.slice(0, PREVIEW_LEN) + "…";
+  }
+
+  function setupModal(){
+    const backdrop = document.getElementById("modalBackdrop");
+    const closeBtn = document.getElementById("modalClose");
+    const body = document.getElementById("modalBody");
+    const title = document.getElementById("modalTitle");
+
+    function close(){
+      backdrop.style.display = "none";
+      body.textContent = "";
+      title.textContent = "Full text";
+    }
+
+    closeBtn.addEventListener("click", close);
+    backdrop.addEventListener("click", (e)=>{ if(e.target === backdrop) close(); });
+    document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") close(); });
+
+    return function open(fieldName, fullText){
+      title.textContent = fieldName ? `Full text — ${fieldName}` : "Full text";
+      body.textContent = String(fullText ?? "");
+      backdrop.style.display = "flex";
+    };
+  }
+{
     return new URL(window.location.href).searchParams.get(name);
   }
 
@@ -93,12 +178,28 @@ title: Data Viewer
       return;
     }
 
+       const openModal = setupModal();
+
     const headers = Object.keys(data[0]);
     const columns = headers.map(h => ({
       title: h,
       field: h,
       headerFilter: true,
-      sorter: "string"
+      sorter: "string",
+      formatter: (cell) => {
+        const v = cell.getValue();
+        const full = String(v ?? "");
+        // show preview if long, otherwise show full
+        const shown = (full.length > PREVIEW_LEN) ? previewText(full) : full;
+        return `<span class="cell-preview" title="Click to view full text">${shown}</span>`;
+      },
+      cellClick: (e, cell) => {
+        const full = cell.getValue();
+        if (full == null) return;
+        const s = String(full);
+        // Only open modal if it's actually long (prevents annoyance)
+        if (s.length > PREVIEW_LEN) openModal(h, s);
+      }
     }));
 
     const table = new Tabulator("#table", {
